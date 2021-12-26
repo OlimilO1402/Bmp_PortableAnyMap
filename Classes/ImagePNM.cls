@@ -227,6 +227,22 @@ Private Function IsAnymap(FNr As Integer) As Boolean
         Get FNr, , ch
         If ch <> Asc(vbLf) Then IsAnymap = False: Exit Function
     End Select
+    With m_BmpInfo.bmiHeader
+        Select Case m_PNMType
+        Case EPNMType.PortableBitmapAsc Or EPNMType.PortableBitmapBin
+            .biBitCount = 2
+            .biClrUsed = 2
+        Case EPNMType.PortableGraymapAsc Or EPNMType.PortableGraymapBin
+            .biBitCount = 8
+            .biClrUsed = 256
+        Case EPNMType.PortablePixmapAsc Or EPNMType.PortablePixmapBin
+            .biBitCount = 16
+            .biClrUsed = 65536
+        Case Else
+            .biBitCount = 8
+            .biClrUsed = 256
+        End Select
+    End With
 End Function
 
 Private Sub ReadComment(FNr As Integer)
@@ -255,12 +271,12 @@ Private Sub ReadComment(FNr As Integer)
 End Sub
 
 Private Function ReadSize(ByVal FNr As Integer) As Boolean
-    Dim w As Long, h As Long
-    ReadSize = ReadInteger(FNr, w)
-    Me.Width = w
+    Dim W As Long, H As Long
+    ReadSize = ReadInteger(FNr, W)
+    Me.Width = W
     If ReadSize Then
-        ReadSize = ReadInteger(FNr, h)
-        Me.Height = h
+        ReadSize = ReadInteger(FNr, H)
+        Me.Height = H
     End If
 End Function
 
