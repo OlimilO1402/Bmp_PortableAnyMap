@@ -14,9 +14,9 @@ Attribute VB_Exposed = False
 Option Explicit
 'https://de.wikipedia.org/wiki/Portable_Anymap
 'PNM = Portable Anymap
-'PBM = Portable Bitmap
-'PGM = Portable Graymap
-'PPM = Portable Pixmap
+'PBM = Portable Bitmap  ' 2 colors black-white  ' P1 asc ' P4 bin
+'PGM = Portable Graymap ' 256 indexed greyscale ' P2 asc ' P5 bin
+'PPM = Portable Pixmap  ' 8-Bit or 16-Bit color ' P3 asc ' P6 bin
 'PNM = Portable Anymap
 
 'P1  Portable Bitmap     ASCII ' Farben: 2
@@ -175,7 +175,7 @@ Friend Sub New_(aPFN As String)
 End Sub
 
 Public Function ToStr() As String
-    ToStr = m_PNMType & "; " & m_Comment & "; w: " & Me.Width & "; h: " & Me.Height & "; c: " & m_MaxCols
+    ToStr = Me.PNMType_ToStr & "; " & m_Comment & "; w: " & Me.Width & "; h: " & Me.Height & "; c: " & m_MaxCols
 End Function
 
 Public Sub Read(aPFN As String)
@@ -305,14 +305,30 @@ Try: On Error GoTo Catch
     Dim u As Long: u = LOF(FNr) - Seek(FNr)
     If m_PNMType < 4 Then
         'read ascii
+        Dim sLines As String: sLines = Space(u + 1)
+        Get FNr, , sLines
+        Dim Lines() As String
+        If InStr(1, sLines, vbCrLf) > 0 Then
+            Lines = Split(sLines, vbCrLf)
+        ElseIf InStr(1, sLines, vbCr) > 0 Then
+            Lines = Split(sLines, vbCr)
+        ElseIf InStr(1, sLines, vbLf) > 0 Then
+            Lines = Split(sLines, vbLf)
+        End If
+        Dim sa() As String, s As String
+        Dim i As Long, j As Long, c As Long
         ReDim m_data(0 To Me.ByteSize - 1)
-        Dim i As Long, b As Long
-        Do
-            If ReadInteger(FNr, b) Then
-                m_data(i) = CByte(b)
-            End If
-            i = i + 1
-        Loop Until EOF(FNr)
+        For i = 0 To UBound(Lines)
+            s = Lines(i)
+            sa = Split(s, " ")
+            For j = 0 To UBound(sa)
+                s = sa(j)
+                If Len(s) And IsNumeric(s) Then
+                    m_data(c) = CByte(s)
+                    c = c + 1
+                End If
+            Next
+        Next
     Else
         'read binary
         ReDim m_data(0 To u)
@@ -320,8 +336,34 @@ Try: On Error GoTo Catch
     End If
     ReadData = (u + 1) = Me.Width * Me.Height * Me.MaxColors \ 255
     Exit Function
-Catch: MsgBox "Error reading data"
+Catch:
+    'if err.Number = 9
+    MsgBox Err.Number & " " & "Error reading data" & vbCrLf & Err.Description
 End Function
+
+'Private Function ReadData(FNr As Integer) As Boolean
+'Try: On Error GoTo Catch
+'    Dim u As Long: u = LOF(FNr) - Seek(FNr)
+'    If m_PNMType < 4 Then
+'        'read ascii
+'        ReDim m_data(0 To Me.ByteSize)
+'        Do Until EOF(FNr)
+'            If ReadInteger(FNr, b) Then
+'                m_data(i) = CByte(b)
+'            End If
+'            i = i + 1
+'        Loop Until EOF(FNr)
+'    Else
+'        'read binary
+'        ReDim m_data(0 To u)
+'        Get FNr, , m_data
+'    End If
+'    ReadData = (u + 1) = Me.Width * Me.Height * Me.MaxColors \ 255
+'    Exit Function
+'Catch:
+'    'if err.Number = 9
+'    MsgBox Err.Number & " " & "Error reading data" & vbCrLf & Err.Description
+'End Function
 
 Public Property Get PNMType() As EPNMType
     PNMType = m_PNMType
@@ -329,13 +371,13 @@ End Property
 Public Function PNMType_ToStr() As String
     Dim s As String
     Select Case m_PNMType
-    Case EPNMType.PortableBitmapAsc:  s = "Portable Bitmap (Asc) P1"
-    Case EPNMType.PortableGraymapAsc: s = "Portable Graymap (Asc) P2"
-    Case EPNMType.PortablePixmapAsc:  s = "Portable Bitmap (Asc) P3"
-    Case EPNMType.PortableBitmapBin:  s = "Portable Bitmap (Bin) P4"
-    Case EPNMType.PortableGraymapBin: s = "Portable Grayma (pBin) P5"
-    Case EPNMType.PortablePixmapBin:  s = "Portable Pixmap (Bin) P6"
-    Case EPNMType.PortableAnyMapBin:  s = "Portable AnyMap (Bin) P7"
+    Case EPNMType.PortableBitmapAsc:  s = "Portable Bitmap (Ascii) P1"
+    Case EPNMType.PortableGraymapAsc: s = "Portable Graymap(Ascii) P2"
+    Case EPNMType.PortablePixmapAsc:  s = "Portable Bitmap (Ascii) P3"
+    Case EPNMType.PortableBitmapBin:  s = "Portable Bitmap(Binary) P4"
+    Case EPNMType.PortableGraymapBin: s = "Portable Grayma(Binary) P5"
+    Case EPNMType.PortablePixmapBin:  s = "Portable Pixmap(Binary) P6"
+    Case EPNMType.PortableAnyMapBin:  s = "Portable AnyMap(Binary) P7"
     End Select
     PNMType_ToStr = s
 End Function
