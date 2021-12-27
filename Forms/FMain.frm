@@ -21,7 +21,7 @@ Begin VB.Form FMain
    End
    Begin VB.PictureBox Picture1 
       AutoRedraw      =   -1  'True
-      BackColor       =   &H80000005&
+      BackColor       =   &H00000040&
       Height          =   6735
       Left            =   0
       OLEDragMode     =   1  'Automatisch
@@ -68,7 +68,12 @@ Private Sub BtnInfo_Click()
     MsgBox App.CompanyName & " " & App.EXEName & " v" & App.Major & "." & App.Minor & "." & App.Revision & vbCrLf & App.FileDescription
 End Sub
 
-Private Sub Picture1_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, Y As Single)
+'Private Sub Command1_Click()
+'    MsgBox "Das erste und das letzte Byte sind: " & vbCrLf & _
+'            "&H" & Hex(m_pnm.Data(0, 0)) & " " & "&H" & Hex(m_pnm.Data(m_pnm.Width - 1, m_pnm.Height - 1))
+'End Sub
+
+Private Sub Picture1_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, y As Single)
     If Not Data.GetFormat(vbCFFiles) Then Exit Sub
     Dim pfn As String: pfn = Data.Files(1)
     Dim dt As Single: dt = Timer

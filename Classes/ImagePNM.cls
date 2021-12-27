@@ -140,14 +140,29 @@ Friend Function ToPicture() As StdPicture
 Try: On Error GoTo Catch
     With m_PicDesc
         .hbitmap = CreateDIBSection(0&, m_BmpInfo, 0&, 0&, 0&, 0&)
-        If .hbitmap = 0 Then Exit Function
-        If SetDIBits(0&, .hbitmap, 0&, Me.Height, m_data(0), m_BmpInfo, 0&) = 0 Then Exit Function
+        If .hbitmap = 0 Then GoTo Catch 'Exit Function
+        If SetDIBits(0&, .hbitmap, 0&, Me.Height, m_data(0), m_BmpInfo, 0&) = 0 Then GoTo Catch
     End With
     OleCreatePictureIndirect m_PicDesc, m_PicGUID, 1&, ToPicture
     Exit Function
-Catch: MsgBox "Could not convert to Picture"
+Catch:
+    Dim mess As String: mess = "Could not convert to Picture"
+    Dim lde As Long: lde = Err.LastDllError
+    If lde Then mess = mess & vbCrLf & lde & " " & Err.Description
+    MsgBox mess
 End Function
 
+Public Property Let Data(ByVal x As Long, ByVal y As Long, Value As Byte)
+    Dim Index As Long
+    Index = y * Me.Width + x
+    m_data(Index) = Value
+End Property
+Public Property Get Data(ByVal x As Long, ByVal y As Long) As Byte
+    Dim Index As Long: Index = y * Me.Width + x
+    If m_PNMType = EPNMType.PortableBitmapBin Then Index = Index / 8
+    If Index > UBound(m_data) Then Index = UBound(m_data)
+    Data = m_data(Index)
+End Property
 'Beispiel für Header:
 'P5
 '# Created by IrfanView
@@ -174,7 +189,10 @@ Try: On Error GoTo Catch
     If Not IsAnymap(FNr) Then Exit Sub
     ReadComment FNr 'maybe or maybe not there
     If Not ReadSize(FNr) Then Exit Sub
-    If Not ReadMaxCols(FNr) Then Exit Sub
+    Select Case m_PNMType
+    Case EPNMType.PortableBitmapBin
+    Case Else: ReadMaxCols FNr
+    End Select
     If Not ReadData(FNr) Then Exit Sub
     GoTo Finally
 Catch:
@@ -200,10 +218,18 @@ Private Function IsAnymap(FNr As Integer) As Boolean
     Dim i As Integer
     With m_BmpInfo
         Select Case m_PNMType
-        Case EPNMType.PortableBitmapAsc, EPNMType.PortableBitmapBin
+        Case EPNMType.PortableBitmapAsc
             With .bmiHeader
                 .biBitCount = 8
                 .biClrUsed = 256
+            End With
+            .bmiColors(0) = New_BGRA(255, 255, 255, 0) ' Weiß
+            .bmiColors(1) = New_BGRA(0, 0, 0, 0)       ' Schwarz
+        Case EPNMType.PortableBitmapBin
+            With .bmiHeader
+                .biBitCount = 1
+                .biClrUsed = 2
+                .biClrImportant = 2
             End With
             .bmiColors(0) = New_BGRA(255, 255, 255, 0) ' Weiß
             .bmiColors(1) = New_BGRA(0, 0, 0, 0)       ' Schwarz
