@@ -54,10 +54,10 @@ Private Type TLng
     Value As Long
 End Type
 
-Private Type RGBA
-    R As Byte
+Private Type BGRA '
+    B As Byte
     G As Byte
-    b As Byte
+    R As Byte
     A As Byte
 End Type
 
@@ -79,11 +79,7 @@ End Type                 ' Sum: 40
 'https://docs.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapinfo
 Private Type BITMAPINFO
     bmiHeader As BITMAPINFOHEADER
-    bmiColors As Long 'Ptr
-End Type
-
-Private Type ColorPalette
-    Colors(0 To 255) As RGBA ' As Long ' As RGBA '
+    bmiColors(0 To 255) As BGRA
 End Type
 
 'https://docs.microsoft.com/en-us/windows/win32/api/olectl/ns-olectl-pictdesc
@@ -116,26 +112,27 @@ End Type         ' Sum: 16
 Private m_PFN     As String
 Private m_PNMType As EPNMType ' P2: Daten als Text gespeichert, P5: Daten binär gespeichert
 Private m_Comment As String
-Private m_MaxCols As Long   ' maximale Anzahl Graustufen 0..255 = 8 Bit' oder 0..65535 = 16 Bit
+Private m_MaxCols As Long     ' maximale Anzahl Graustufen 0..255 = 8 Bit' oder 0..65535 = 16 Bit
 Private m_PicGUID As GUID
 Private m_BmpInfo As BITMAPINFO
-Private m_Palette As ColorPalette
+'Private m_Palette As ColorPalette
 Private m_PicDesc As PICTDESC
 Private m_data()  As Byte
 
 Private Sub Class_Initialize()
+    Dim i As Integer
     With m_BmpInfo
-        .bmiHeader.biSize = LenB(m_BmpInfo)
+        .bmiHeader.biSize = LenB(.bmiHeader)
         .bmiHeader.biPlanes = 1
         .bmiHeader.biBitCount = 8
         .bmiHeader.biClrUsed = 256
+        For i = 0 To 255 'do not use i as byte -> overflow
+            With .bmiColors(i)
+                .R = i: .G = i: .B = i
+            End With
+        Next
     End With
-    Dim i As Integer
-    For i = 0 To 255 'do not use i as byte -> overflow
-        With m_Palette.Colors(i)
-            .R = i: .G = i: .b = i
-        End With
-    Next
+    m_MaxCols = 255
     With m_PicDesc
         .cbSize = LenB(m_PicDesc)
         .picType = 1 'PictureTypeConstants.vbPicTypeBitmap
@@ -160,7 +157,6 @@ Catch: MsgBox "Could not convert to Picture"
 End Function
 
 'Beispiel für Header:
-'
 'P5
 '# Created by IrfanView
 '800 640
@@ -183,7 +179,6 @@ Public Sub Read(aPFN As String)
 Try: On Error GoTo Catch
     Dim FNr As Integer: FNr = FreeFile
     Open m_PFN For Binary Access Read As FNr
-    'If Not IsPGM(FNr) Then Exit Sub
     If Not IsAnymap(FNr) Then Exit Sub
     ReadComment FNr 'maybe or maybe not there
     If Not ReadSize(FNr) Then Exit Sub
@@ -195,23 +190,6 @@ Catch:
 Finally:
     Close FNr
 End Sub
-
-'Private Function IsPGM(FNr As Integer) As Boolean
-'    Dim chP As Byte, chX As Byte, ch As Byte
-'    Get FNr, , chP: IsPGM = chP = Asc("P")
-'    If Not IsPGM Then MsgBox "ERROR(1): Not valid pgm/ppm file type.": Exit Function
-'    Get FNr, , chX:
-'    chX = chX - 48:  IsPGM = (chX = 2) Or (chX = 5)
-'    If Not IsPGM Then MsgBox "ERROR(2): This file type is not supported: " & chX: Exit Function
-'    m_PNMHead = Chr(chP) & CStr(chX)
-'    Get FNr, , ch
-'    Select Case ch
-'    Case Asc(vbLf)
-'    Case Asc(vbCr)
-'        Get FNr, , ch
-'        If ch <> Asc(vbLf) Then IsPGM = False: Exit Function
-'    End Select
-'End Function
 
 Private Function IsAnymap(FNr As Integer) As Boolean
     Dim ch As Byte
@@ -227,21 +205,31 @@ Private Function IsAnymap(FNr As Integer) As Boolean
         Get FNr, , ch
         If ch <> Asc(vbLf) Then IsAnymap = False: Exit Function
     End Select
-    With m_BmpInfo.bmiHeader
+    With m_BmpInfo
+        With .bmiHeader
+            .biBitCount = 8
+            .biClrUsed = 256
+        End With
         Select Case m_PNMType
-        Case EPNMType.PortableBitmapAsc Or EPNMType.PortableBitmapBin
-            .biBitCount = 2
-            .biClrUsed = 2
-        Case EPNMType.PortableGraymapAsc Or EPNMType.PortableGraymapBin
-            .biBitCount = 8
-            .biClrUsed = 256
-        Case EPNMType.PortablePixmapAsc Or EPNMType.PortablePixmapBin
-            .biBitCount = 16
-            .biClrUsed = 65536
+        Case EPNMType.PortableBitmapAsc, EPNMType.PortableBitmapBin
+            .bmiColors(1) = New_BGRA(0, 0, 0, 0)       ' Schwarz
+            .bmiColors(0) = New_BGRA(255, 255, 255, 0) ' Weiß
+        Case EPNMType.PortableGraymapAsc, EPNMType.PortableGraymapBin
+            '
+        Case EPNMType.PortablePixmapAsc, EPNMType.PortablePixmapBin
+            With .bmiHeader
+                .biBitCount = 16
+                .biClrUsed = 65536
+            End With
         Case Else
-            .biBitCount = 8
-            .biClrUsed = 256
+            '
         End Select
+    End With
+End Function
+
+Private Function New_BGRA(ByVal R As Byte, ByVal G As Byte, ByVal B As Byte, ByVal A As Byte) As BGRA
+    With New_BGRA
+        .R = R: .G = G: .B = B: .A = A
     End With
 End Function
 
