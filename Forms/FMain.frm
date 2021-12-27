@@ -21,6 +21,7 @@ Begin VB.Form FMain
    End
    Begin VB.PictureBox Picture1 
       AutoRedraw      =   -1  'True
+      BackColor       =   &H80000005&
       Height          =   6735
       Left            =   0
       OLEDragMode     =   1  'Automatisch

@@ -334,11 +334,10 @@ Try: On Error GoTo Catch
             Next
         Next
     Else
-        'read binary
         ReDim m_data(0 To u)
         Get FNr, , m_data
     End If
-    ReadData = (u + 1) = Me.Width * Me.Height * Me.MaxColors \ 255
+    ReadData = True
     Exit Function
 Catch:
     'if err.Number = 9
@@ -387,8 +386,13 @@ Public Function PNMType_ToStr() As String
 End Function
 
 Public Property Get ByteSize() As Long
-    'ByteSize = UBound(m_data) * IIf(m_MaxCols = 255, 1, 2)
-    ByteSize = Me.Width * Me.Height * IIf(m_MaxCols = 255, 1, 2)
+    Dim f As Long
+    Select Case m_PNMType
+    Case EPNMType.PortableBitmapAsc, EPNMType.PortableBitmapBin:   f = 1
+    Case EPNMType.PortableGraymapAsc, EPNMType.PortableGraymapBin: f = 1
+    Case EPNMType.PortablePixmapAsc, EPNMType.PortablePixmapBin:   f = 3
+    End Select
+    ByteSize = Me.Width * Me.Height * f
 End Property
 
 Public Property Get Comment() As String
