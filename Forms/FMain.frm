@@ -5,8 +5,8 @@ Begin VB.Form FMain
    ClientLeft      =   120
    ClientTop       =   465
    ClientWidth     =   10980
-   Icon            =   "Form1.frx":0000
-   LinkTopic       =   "Form1"
+   Icon            =   "FMain.frx":0000
+   LinkTopic       =   "FMain"
    ScaleHeight     =   516
    ScaleMode       =   3  'Pixel
    ScaleWidth      =   732

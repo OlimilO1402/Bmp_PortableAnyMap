@@ -21,7 +21,7 @@ Option Explicit
 
 'P1  Portable Bitmap     ASCII ' Farben: 2
 'P2  Portable Graymap    ASCII ' Graustufen: 256
-'P3  Portable Pixmap     ASCII ' Farben: x
+'P3  Portable Pixmap     ASCII ' Farben: 24bit
 'P4  Portable Bitmap     Binär
 'P5  Portable Graymap    Binär
 'P6  Portable Pixmap     Binär
@@ -115,7 +115,6 @@ Private m_Comment As String
 Private m_MaxCols As Long     ' maximale Anzahl Graustufen 0..255 = 8 Bit' oder 0..65535 = 16 Bit
 Private m_PicGUID As GUID
 Private m_BmpInfo As BITMAPINFO
-'Private m_Palette As ColorPalette
 Private m_PicDesc As PICTDESC
 Private m_data()  As Byte
 
@@ -124,13 +123,6 @@ Private Sub Class_Initialize()
     With m_BmpInfo
         .bmiHeader.biSize = LenB(.bmiHeader)
         .bmiHeader.biPlanes = 1
-        .bmiHeader.biBitCount = 8
-        .bmiHeader.biClrUsed = 256
-        For i = 0 To 255 'do not use i as byte -> overflow
-            With .bmiColors(i)
-                .R = i: .G = i: .B = i
-            End With
-        Next
     End With
     m_MaxCols = 255
     With m_PicDesc
@@ -205,24 +197,33 @@ Private Function IsAnymap(FNr As Integer) As Boolean
         Get FNr, , ch
         If ch <> Asc(vbLf) Then IsAnymap = False: Exit Function
     End Select
+    Dim i As Integer
     With m_BmpInfo
-        With .bmiHeader
-            .biBitCount = 8
-            .biClrUsed = 256
-        End With
         Select Case m_PNMType
         Case EPNMType.PortableBitmapAsc, EPNMType.PortableBitmapBin
-            .bmiColors(1) = New_BGRA(0, 0, 0, 0)       ' Schwarz
+            With .bmiHeader
+                .biBitCount = 8
+                .biClrUsed = 256
+            End With
             .bmiColors(0) = New_BGRA(255, 255, 255, 0) ' Weiß
+            .bmiColors(1) = New_BGRA(0, 0, 0, 0)       ' Schwarz
         Case EPNMType.PortableGraymapAsc, EPNMType.PortableGraymapBin
-            '
+            With .bmiHeader
+                .biBitCount = 8
+                .biClrUsed = 256
+            End With
+            For i = 0 To 255 'do not use i as byte -> overflow
+                With .bmiColors(i)
+                    .R = i: .G = i: .B = i
+                End With
+            Next
         Case EPNMType.PortablePixmapAsc, EPNMType.PortablePixmapBin
             With .bmiHeader
-                .biBitCount = 16
-                .biClrUsed = 65536
+                .biBitCount = 24
+                .biClrUsed = 16777216
             End With
         Case Else
-            '
+            '???
         End Select
     End With
 End Function
@@ -238,7 +239,6 @@ Private Sub ReadComment(FNr As Integer)
     Dim ch As Byte
     Get FNr, , ch
     If ch <> Asc("#") Then
-        'Seek(fnr) = sk
         Get FNr, sk - 1, ch
         Exit Sub
     End If
