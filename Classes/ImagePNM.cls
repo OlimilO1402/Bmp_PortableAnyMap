@@ -139,9 +139,41 @@ End Sub
 Friend Function ToPicture() As StdPicture
 Try: On Error GoTo Catch
     With m_PicDesc
-        .hbitmap = CreateDIBSection(0&, m_BmpInfo, 0&, 0&, 0&, 0&)
-        If .hbitmap = 0 Then GoTo Catch 'Exit Function
-        If SetDIBits(0&, .hbitmap, 0&, Me.Height, m_data(0), m_BmpInfo, 0&) = 0 Then GoTo Catch
+    
+    
+        If m_PNMType = PortableBitmapBin Then
+            
+            Dim W As Long: W = m_BmpInfo.bmiHeader.biWidth
+            Dim H As Long: H = Abs(m_BmpInfo.bmiHeader.biHeight)
+            
+            Dim Stride As Long: Stride = ((W + 31) And Not 31) \ 8
+            
+            ReDim bytData((Stride * H) - 1) As Byte
+            
+            Dim X As Long, Y As Long, i As Long
+            
+            For Y = 0 To H - 1
+                For X = 0 To W - 1
+            
+                    If (X Mod 8) = 0& Then
+                        bytData((Y * Stride) + (X \ 8)) = m_data(i)
+                        i = i + 1
+                    End If
+                
+                Next
+            Next
+        
+            .hbitmap = CreateDIBSection(0&, m_BmpInfo, 0&, 0&, 0&, 0&)
+            If .hbitmap = 0 Then GoTo Catch 'Exit Function
+            If SetDIBits(0&, .hbitmap, 0&, Me.Height, bytData(0), m_BmpInfo, 0&) = 0 Then GoTo Catch
+            
+        Else
+            
+            .hbitmap = CreateDIBSection(0&, m_BmpInfo, 0&, 0&, 0&, 0&)
+            If .hbitmap = 0 Then GoTo Catch 'Exit Function
+            If SetDIBits(0&, .hbitmap, 0&, Me.Height, m_data(0), m_BmpInfo, 0&) = 0 Then GoTo Catch
+            
+        End If
     End With
     OleCreatePictureIndirect m_PicDesc, m_PicGUID, 1&, ToPicture
     Exit Function
@@ -152,13 +184,13 @@ Catch:
     MsgBox mess
 End Function
 
-Public Property Let Data(ByVal x As Long, ByVal y As Long, Value As Byte)
+Public Property Let Data(ByVal X As Long, ByVal Y As Long, Value As Byte)
     Dim Index As Long
-    Index = y * Me.Width + x
+    Index = Y * Me.Width + X
     m_data(Index) = Value
 End Property
-Public Property Get Data(ByVal x As Long, ByVal y As Long) As Byte
-    Dim Index As Long: Index = y * Me.Width + x
+Public Property Get Data(ByVal X As Long, ByVal Y As Long) As Byte
+    Dim Index As Long: Index = Y * Me.Width + X
     If m_PNMType = EPNMType.PortableBitmapBin Then Index = Index / 8
     If Index > UBound(m_data) Then Index = UBound(m_data)
     Data = m_data(Index)
