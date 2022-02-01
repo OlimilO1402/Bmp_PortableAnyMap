@@ -38,9 +38,9 @@ Public Enum EPNMType
 End Enum
 
 #If VBA7 = 0 Then
-    Private Enum LongPtr
-        [_]
-    End Enum
+'    Private Enum LongPtr
+'        [_]
+'    End Enum
 #End If
 
 Private Type GUID
